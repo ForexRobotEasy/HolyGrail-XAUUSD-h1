@@ -1,0 +1,93 @@
+
+// HolyGrail XAUUSD h1
+// Developer's Site: forexroboteasy.com
+// Development Name: Forex Robot Easy Team
+
+// Include necessary libraries
+#include <Trade\Trade.mqh>
+#include <Indicators\Trend.mqh>
+#include <Indicators\Oscillator.mqh>
+#include <Economy\EconomicCalendar.mqh>
+
+// Define constants
+#define SYMBOL_NAME 'XAUUSD'
+#define TIMEFRAME H1
+
+// Initialize trade object
+CTrade trade;
+
+// Initialize trend and oscillator indicators
+CTrend trend;
+COscillator oscillator;
+
+// Initialize economic calendar
+CEconomicCalendar calendar;
+
+// Initialize variables
+double lotSize;
+double stopLoss;
+double takeProfit;
+
+// Define trading function
+void TradeXAUUSD()
+{
+    // Calculate lot size based on available balance
+    double balance = AccountInfoDouble(ACCOUNT_BALANCE);
+    lotSize = balance * 0.01; // 1% of the available balance
+
+    // Set stop loss and take profit levels based on market volatility
+    stopLoss = SymbolStopLevel() * 2; // 2 times the symbol stop level
+    takeProfit = SymbolStopLevel() * 1.5; // 1.5 times the symbol stop level
+
+    // Check current market trend
+    double trendStrength = trend.Strength();
+    if (trendStrength > 0.5)
+    {
+        // Identify potential entry and exit points
+        double entryPrice = oscillator.Value();
+        double exitPrice = oscillator.Value() + (trendStrength * 100);
+
+        // Check economic calendar for high impact news events
+        int newsCount = calendar.GetEventsCount(TIMEFRAME, SYMBOL_NAME, NEWS_HIGH_IMPACT);
+        if (newsCount == 0)
+        {
+            // Open a buy trade
+            trade.Buy(lotSize, SYMBOL_NAME, entryPrice, stopLoss, takeProfit, 'Buy Trade', 0);
+        }
+        else
+        {
+            // Open a sell trade
+            trade.Sell(lotSize, SYMBOL_NAME, entryPrice, stopLoss, takeProfit, 'Sell Trade', 0);
+        }
+    }
+}
+
+// Initialize the EA
+int OnInit()
+{
+    // Attach indicators to the chart
+    trend.Attach(Symbol(), TIMEFRAME);
+    oscillator.Attach(Symbol(), TIMEFRAME);
+
+    // Initialize economic calendar
+    calendar.Initialize();
+
+    return(INIT_SUCCEEDED);
+}
+
+// Execute trading logic
+void OnTick()
+{
+    TradeXAUUSD();
+}
+
+// Clean up resources
+void OnDeinit(const int reason)
+{
+    // Detach indicators from the chart
+    trend.Detach();
+    oscillator.Detach();
+
+    // Clear economic calendar data
+    calendar.Clear();
+}
